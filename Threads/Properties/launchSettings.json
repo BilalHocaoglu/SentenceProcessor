@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Threads": {
+      "commandName": "Project",
+      "commandLineArgs": "TXT_SAMPLE.txt"
+    }
+  }
+}
