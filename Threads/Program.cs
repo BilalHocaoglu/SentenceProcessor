@@ -11,7 +11,6 @@ namespace Threads
     class Program
     {
         private static int ThreadCounts = 5;
-        private static string TxtFilePath = "";
         private static ManualResetEvent WordsProcessDone = new(false);
         private static Dictionary<string, string> Sentences = new();
         public static ConcurrentDictionary<string, int> WordDictionary = new();
@@ -19,13 +18,14 @@ namespace Threads
         static void Main(string[] args)
         {
 
+            // TXT file ın okunması
+            var paragraph = File.ReadAllText(args[0]);
 
-            var paragraph =File.ReadAllText( args[0]);
 
-            Console.WriteLine("Please insert TreadCount value:");
-
+            // Tread Count un ekrandan verilmesi
             SetTreadLineValue();
 
+            //Dosyadaki cümle ve kelime sayılarının belirlenmesi
             var sentenceStartIndex = 0;
             var wordCount = String.IsNullOrEmpty(paragraph) ? 0 : 1;
             for (var p = 0; p < paragraph.Length; p++)
@@ -61,15 +61,18 @@ namespace Threads
 
             var workers = new List<SentenceProcessor>();
 
+            //belirlenene sayıda thread ların oluşturulması
             for (var j = 0; j < ThreadCounts; j++)
             {
                 var worker = new SentenceProcessor();
+
+                //herbir thread için, süreçlerinin tamamlanmasının yakalanması için event in oluşturulması
                 worker.SentenceProcessed += WorkerOnSentenceProcessed;
                 workers.Add(worker);
                 Task.Run(() => worker.Start());
             }
-            
 
+            // Cümlelerin thread lara paylaştırılması
             for (var i = 0; i < Sentences.Count; i++)
             {
                 var currentWorker = (i % workers.Count);
@@ -78,20 +81,22 @@ namespace Threads
                 worker.AddSentence(sentence);
             }
 
-
+            // bu aşamada alt thread lra cümlelerini işlediği sürece ana thread bekletilmekte
             WordsProcessDone.WaitOne();
 
-
+            //Event lerin düşürülmesi ve thread ların kapatılması
             workers.ForEach(f =>
             {
                 f.SentenceProcessed -= WorkerOnSentenceProcessed;
                 f.Stop();
             });
 
+            //kelimelerin sıralanması
             var sorted = WordDictionary
                 .OrderByDescending(o => o.Value)
                 .ThenByDescending(t => t.Key);
 
+            //kelimeleri  console a yazdırılması
             foreach (var (key, value) in sorted)
             {
                 Console.WriteLine($"{key} - {value}");
@@ -100,9 +105,10 @@ namespace Threads
             Console.ReadLine();
         }
 
-      
+
         public static void SetTreadLineValue()
         {
+            Console.WriteLine("Please insert TreadCount value:");
             string sThreadCounts = Console.ReadLine();
             if (!Int32.TryParse(sThreadCounts, out ThreadCounts))
             {
@@ -113,10 +119,11 @@ namespace Threads
 
         private static void WorkerOnSentenceProcessed(object sender, SentenceProcessedArg e)
         {
+
             lock (Sentences)
             {
                 if (e.Words != null)
-                {
+                { //her alt threadın işini tamamlanması ardından Dictionary de bu kelimelerin toplanması
                     foreach (var word in e.Words)
                     {
                         WordDictionary.TryGetValue(word, out var count);
@@ -125,6 +132,7 @@ namespace Threads
                 }
 
                 Sentences.Remove(e.Sentence, out _);
+                // Tüm thread lar işini bitirdiğinde ana thread e "devam" sinyalinin verilmesi
                 if (Sentences.Count == 0)
                 {
                     WordsProcessDone.Set();

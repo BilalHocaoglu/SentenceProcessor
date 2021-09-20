@@ -3,6 +3,7 @@ using System.Threading;
 
 namespace Threads
 {
+    //Alt thread lar için gerekli queue nesnesi
     public class BlockingQueue<T>
     {
         private readonly Queue<T> _queue = new();

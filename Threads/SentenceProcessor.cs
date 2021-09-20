@@ -17,6 +17,7 @@ namespace Threads
             WorkerId = Guid.NewGuid();
         }
 
+        //Thread nesnesinin başlatılma aşaması
         public void Start()
         {
             Console.WriteLine($"Worker {WorkerId.ToString("D")} is starting");
@@ -35,6 +36,7 @@ namespace Threads
         {
             while (!_Stop)
             {
+                // queue dan item çekilmesi ve işlenmesi
                 var task = Sentences.Dequeue();
                 Console.WriteLine($"Task dequeued -> {WorkerId}");
                 if (task == null) return;
@@ -49,9 +51,10 @@ namespace Threads
 
         protected virtual void OnSentenceProcessed(SentenceProcessedArg e)
         {
+            // cümlenin işlenmesinin ardından event in işlenen cümleler ile gönderilmesi
             SentenceProcessed?.Invoke(this, e);
         }
-
+        // alt thread queue larına cumle eklenmesi
         public void AddSentence(string sentence)
         {
             Sentences.Enqueue(sentence);
